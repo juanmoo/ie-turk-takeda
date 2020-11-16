@@ -16,13 +16,13 @@ var raw = $("#raw");
 var well = $("#well");
 var submit = $("#submit");
 var submitStay = $("#submit-stay");
+var submitPrefill = $('#submit-prefill')
 var openDoc = $("#open-document")
 var choice = $("#choice");
 var addNumberedEntry = $("#add-numbered-entries")
 var keyname = $("#key-name");
 var prevAnswer = $("#prev")
 var armNum = $("#armNumber")
-var numberedCategoryCount = 1;
 
 var form = $("#form");
 var answer = {};
@@ -129,7 +129,14 @@ var makePredeterminedCategory = function (key) {
   values[key] = "";
 }
 
-var makeNumberedCategory = function (k, num) {
+var makeNumberedCategory = function (k) {
+  num = 1
+  knum = `${k}${num}`
+  while (knum in fieldName) {
+    num += 1
+    knum = `${k}${num}`
+  }
+
   // Make config entries
   fieldName[`${k}${num}`] = fieldName[`${k}1`].replace('1', num.toString())
   shortName[`${k}${num}`] = shortName[`${k}1`].replace('1', num.toString())
@@ -138,8 +145,9 @@ var makeNumberedCategory = function (k, num) {
 
   // Create Category
   makePredeterminedCategory(`${k}${num}`);
-
   updateInputs();
+
+  return knum;
 }
 
 var makeDom = function () {
@@ -237,11 +245,10 @@ openDoc.click(() => {
 
 // Create new description entry
 addNumberedEntry.click(() => {
-  numberedCategoryCount += 1
   for (k of number_keys) {
     console.log(`Adding new category: ${k}`)
-    keys.push(`${k}${numberedCategoryCount}`)
-    makeNumberedCategory(k, numberedCategoryCount)
+    knum = makeNumberedCategory(k)
+    keys.push(knum)
     show();
   }
 })
@@ -324,10 +331,16 @@ var show = function () {
     submitStay.removeAttr("disabled");
     submitStay.removeClass("btn-default");
     submitStay.addClass("btn-success");
+    submitPrefill.removeAttr("disabled");
+    submitPrefill.removeClass("btn-default");
+    submitPrefill.addClass("btn-success");
   } else {
     submitStay.attr("disabled", "disabled");
     submitStay.removeClass("btn-success");
     submitStay.addClass("btn-default");
+    submitPrefill.attr("disabled", "disabled");
+    submitPrefill.removeClass("btn-success");
+    submitPrefill.addClass("btn-default");
   }
 };
 
@@ -405,9 +418,45 @@ for (k of keys) {
   }
 }
 
+// Parse tokens and hide raw
+var tokens = raw.text().split(" ");
+raw.hide();
+
+// Prefill answers if available
+prevAnswer = prevAnswer.text() !== "undefined" ? JSON.parse(prevAnswer.text()) : "no-prev";
+if (prevAnswer !== "no-prev") {
+
+  // Ensure that all numbered categories exist
+  for (k of Object.keys(prevAnswer)) {
+    if (k.endsWith('-tag')) {
+      key = k.substring(0, k.length - 4)
+      if (!(key in annotations)) {
+        i = key.indexOf('-')
+        if (i !== -1 && !isNaN(key.substring(i + 1, key.length))) {
+          makeNumberedCategory(key.substring(0, i + 1))
+        }
+      }
+    }
+  }
+
+  // fill spans
+  for (k of Object.keys(prevAnswer)) {
+    if (k.endsWith("-tag")) {
+      if (prevAnswer[k].length > 0) {
+        key = k.substring(0, k.length - 4)
+
+        if (key in annotations) {
+          ans = makeSpans(prevAnswer[k])
+          annotations[key] = makeSpans(prevAnswer[k])
+          radios[key].click()
+        }
+      }
+    }
+  }
+}
+
+// Default to first label type
 key = keys[0];
 radios[key].click();
-var tokens = raw.text().split(" ");
-prevAnswer = prevAnswer.text() !== "undefined" ? JSON.parse(prevAnswer.text()) : "no-prev";
-raw.hide();
+
 show();
