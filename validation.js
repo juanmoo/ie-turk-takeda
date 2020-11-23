@@ -18,7 +18,6 @@ var submit = $("#submit");
 var submitStay = $("#submit-stay");
 var choice = $("#choice");
 var keyname = $("#key-name");
-var instructionTable = $("#instruction-table");
 
 var form = $("#form");
 var answer = {};
@@ -130,7 +129,6 @@ var makeDom = function() {
     choice.append(makeChoice(key));
     annotations[key] = [];
     values[key] = "";
-    instructionTable.append(makeInstruction(key));
   }
 };
 
